@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>X Time Tracker</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:wght@300;400;500&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      width: 300px;
+      background: #0a0a0a;
+      color: #f0f0f0;
+      font-family: 'DM Sans', sans-serif;
+      padding: 20px;
+      user-select: none;
+    }
+
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .logo {
+      width: 28px;
+      height: 28px;
+      background: #fff;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 16px;
+      font-weight: 900;
+      color: #000;
+      font-family: 'Space Mono', monospace;
+    }
+
+    .title {
+      font-size: 13px;
+      font-weight: 500;
+      color: #888;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+
+    .status-dot {
+      width: 7px;
+      height: 7px;
+      border-radius: 50%;
+      background: #333;
+      margin-left: auto;
+      transition: background 0.3s;
+    }
+    .status-dot.active {
+      background: #4ade80;
+      box-shadow: 0 0 8px #4ade8088;
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.5; }
+    }
+
+    .today-card {
+      background: #111;
+      border: 1px solid #1e1e1e;
+      border-radius: 12px;
+      padding: 18px;
+      margin-bottom: 16px;
+    }
+
+    .today-label {
+      font-size: 11px;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 8px;
+    }
+
+    .today-time {
+      font-family: 'Space Mono', monospace;
+      font-size: 36px;
+      font-weight: 700;
+      color: #fff;
+      letter-spacing: -1px;
+      line-height: 1;
+    }
+
+    .today-time span {
+      font-size: 16px;
+      color: #444;
+      font-weight: 400;
+    }
+
+    .session-note {
+      font-size: 11px;
+      color: #444;
+      margin-top: 8px;
+    }
+    .session-note.live {
+      color: #4ade80;
+    }
+
+    .history-title {
+      font-size: 11px;
+      color: #555;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      margin-bottom: 10px;
+    }
+
+    .history-list {
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .history-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 8px 12px;
+      background: #111;
+      border-radius: 8px;
+      border: 1px solid #1a1a1a;
+    }
+
+    .history-date {
+      font-size: 12px;
+      color: #666;
+    }
+
+    .history-time {
+      font-family: 'Space Mono', monospace;
+      font-size: 12px;
+      color: #ccc;
+    }
+
+    .bar-wrap {
+      width: 60px;
+      height: 4px;
+      background: #1e1e1e;
+      border-radius: 2px;
+      overflow: hidden;
+      margin: 0 10px;
+    }
+    .bar-fill {
+      height: 100%;
+      background: #e2e8ff;
+      border-radius: 2px;
+      transition: width 0.4s;
+    }
+
+    .empty {
+      text-align: center;
+      color: #333;
+      font-size: 12px;
+      padding: 16px 0;
+    }
+
+    .reset-btn {
+      display: block;
+      width: 100%;
+      margin-top: 16px;
+      padding: 8px;
+      background: transparent;
+      border: 1px solid #1e1e1e;
+      border-radius: 8px;
+      color: #333;
+      font-size: 11px;
+      font-family: 'DM Sans', sans-serif;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.2s;
+      letter-spacing: 0.05em;
+    }
+    .reset-btn:hover {
+      border-color: #444;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">𝕏</div>
+    <div class="title">Time Tracker</div>
+    <div class="status-dot" id="statusDot"></div>
+  </div>
+
+  <div class="today-card">
+    <div class="today-label">Today</div>
+    <div class="today-time" id="todayTime">0<span>h</span> 0<span>m</span></div>
+    <div class="session-note" id="sessionNote">Not currently on X</div>
+  </div>
+
+  <div class="history-title">Last 7 Days</div>
+  <div class="history-list" id="historyList">
+    <div class="empty">No history yet</div>
+  </div>
+
+  <button class="reset-btn" id="resetBtn">Reset all data</button>
+
+  <script src="popup.js"></script>
+</body>
+</html>
