@@ -15,71 +15,83 @@ function getTodayKey() {
   return `time_${d.getFullYear()}_${d.getMonth() + 1}_${d.getDate()}`;
 }
 
+function getLocalDateStr(d) {
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 function getLast7Days() {
   const days = [];
   for (let i = 0; i < 7; i++) {
     const d = new Date();
     d.setDate(d.getDate() - i);
-    days.push(d.toISOString().split("T")[0]);
+    days.push(getLocalDateStr(d));
   }
   return days;
 }
 
 function formatDateLabel(dateStr, index) {
   if (index === 0) return "Today";
-  if (index === 1) return "Yesterday";
+  if (index === 1) return "Yest";
   const d = new Date(dateStr + "T00:00:00");
-  return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  return d.toLocaleDateString("en-US", { weekday: "short" });
 }
 
-async function checkIfLive() {
-  return new Promise((resolve) => {
-    chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-      const tab = tabs[0];
-      if (tab && tab.url && (tab.url.startsWith("https://x.com") || tab.url.startsWith("https://www.x.com"))) {
-        resolve(true);
-      } else {
-        resolve(false);
-      }
-    });
-  });
-}
+async function updateUI() {
+  const key = getTodayKey();
+  const result = await chrome.storage.local.get([key, "history"]);
+  const todaySecs = result[key] || 0;
+  const history = result.history || {};
 
-async function render() {
-  const todayKey = getTodayKey();
-  const data = await chrome.storage.local.get(["history", todayKey]);
-  const todaySeconds = data[todayKey] || 0;
-  const history = data.history || {};
-
-  // Today
-  document.getElementById("todayTime").innerHTML = formatDisplay(todaySeconds);
-
-  // Live status
-  const live = await checkIfLive();
-  const dot = document.getElementById("statusDot");
-  const note = document.getElementById("sessionNote");
-  if (live) {
-    dot.classList.add("active");
-    note.textContent = "● Tracking now";
-    note.classList.add("live");
+  // Update Today
+  document.getElementById("todayTime").innerHTML = formatDisplay(todaySecs);
+  
+  // Show Warning if Limit Reached
+  if (todaySecs >= 3600) {
+    document.getElementById("limitNote").classList.add("show");
   } else {
-    dot.classList.remove("active");
-    note.textContent = "Not currently on X";
-    note.classList.remove("live");
+    document.getElementById("limitNote").classList.remove("show");
   }
 
-  // History
+  // Calculate & Update 7-Day Total
   const days = getLast7Days();
+  let weeklyTotalSec = 0;
+  days.forEach(d => {
+      weeklyTotalSec += (history[d] || 0);
+  });
+  // Ensure today's live time is included even if history isn't fully flushed
+  if (!history[days[0]] || todaySecs > history[days[0]]) {
+      weeklyTotalSec = weeklyTotalSec - (history[days[0]] || 0) + todaySecs;
+  }
+  document.getElementById("weeklyTotal").innerHTML = formatDisplay(weeklyTotalSec);
+
+  // Is Tracking currently?
+  const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+  const activeTab = tabs[0];
+  const dot = document.getElementById("statusDot");
+  const note = document.getElementById("currentNote");
+  
+  const isX = activeTab && activeTab.url && (activeTab.url.includes("x.com") || activeTab.url.includes("twitter.com"));
+  
+  if (isX && todaySecs < 3600) {
+    dot.classList.add("active");
+    note.textContent = "Tracking now...";
+  } else {
+    dot.classList.remove("active");
+    note.textContent = "Today";
+  }
+
+  // History List (Past 6 Days)
   const maxSeconds = Math.max(...days.map(d => history[d] || 0), 1);
   const listEl = document.getElementById("historyList");
-  
-  // Skip today (already shown above), show past 6 days
   const pastDays = days.slice(1).filter(d => history[d] > 0);
   
   if (pastDays.length === 0) {
     listEl.innerHTML = '<div class="empty">No history yet</div>';
   } else {
-    listEl.innerHTML = days.slice(1).filter(d => history[d] > 0).map((dateStr, i) => {
+    listEl.innerHTML = pastDays.map((dateStr, i) => {
       const secs = history[dateStr] || 0;
       const pct = Math.round((secs / maxSeconds) * 100);
       const label = formatDateLabel(dateStr, i + 1);
@@ -96,14 +108,8 @@ async function render() {
   }
 }
 
-document.getElementById("resetBtn").addEventListener("click", async () => {
-  if (confirm("Reset all tracking data?")) {
-    await chrome.storage.local.clear();
-    render();
-  }
-});
+// Initial load
+updateUI();
 
-render();
-
-// Refresh every second while popup is open
-setInterval(render, 1000);
+// Refresh UI every second if popup is left open
+setInterval(updateUI, 1000);
